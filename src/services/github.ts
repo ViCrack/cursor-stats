@@ -10,7 +10,8 @@ import { t } from '../utils/i18n';
 const SHOWN_CHANGELOGS_KEY = 'shownChangelogs';
 
 export async function checkGitHubRelease(): Promise<ReleaseCheckResult | null> {
-  try {
+	try {
+	  return null;
     // Get current version from package.json
     const packageJson = require('../../package.json');
     const currentVersion = packageJson.version;

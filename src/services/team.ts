@@ -93,24 +93,24 @@ export async function checkTeamMembership(token: string, context: vscode.Extensi
         });
 
         // Fetch team membership data
-        log('[Team] Making request to /api/dashboard/teams endpoint');
-        const response = await axios.post<TeamInfo>('https://cursor.com/api/dashboard/teams', 
-            {}, // empty JSON body
-            {
-                headers: {
-                    'Content-Type': 'application/json',
-                    Cookie: `WorkosCursorSessionToken=${token}`
-                }
-            }
-        );
+        // log('[Team] Making request to /api/dashboard/teams endpoint');
+        // const response = await axios.post<TeamInfo>('https://cursor.com/api/dashboard/teams', 
+        //     {}, // empty JSON body
+        //     {
+        //         headers: {
+        //             'Content-Type': 'application/json',
+        //             Cookie: `WorkosCursorSessionToken=${token}`
+        //         }
+        //     }
+        // );
         
-        const isTeamMember = response.data.teams && response.data.teams.length > 0;
-        const teamId = isTeamMember ? response.data.teams[0].id : undefined;
+        const isTeamMember = false;
+        const teamId = undefined;
         log('[Team] Teams API response', {
             isTeamMember,
             teamId,
-            teamCount: response.data.teams?.length || 0,
-            status: response.status
+            teamCount: 0,
+            status: false
         });
 
         let teamUserId: number | undefined;

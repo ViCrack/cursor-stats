@@ -1,10 +1,36 @@
 import axios from 'axios';
-import { CursorStats, UsageLimitResponse, ExtendedAxiosError, UsageItem, CursorUsageResponse } from '../interfaces/types';
+import { CursorStats, UsageLimitResponse, ExtendedAxiosError, UsageItem, CursorUsageResponse, CurrentPeriodUsageResponse } from '../interfaces/types';
 import { log } from '../utils/logger';
+import { withNetworkRetry } from '../utils/networkRetry';
 import { checkTeamMembership, getTeamSpend, extractUserSpend } from './team';
 import { getExtensionContext } from '../extension';
 import { t } from '../utils/i18n';
 import * as fs from 'fs';
+import * as vscode from 'vscode';
+import { HttpsProxyAgent } from 'https-proxy-agent';
+
+// 全局设置 axios 的 User-Agent，更像人类调用
+axios.defaults.headers.common['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36 Edg/138.0.0.0';
+axios.defaults.headers.common['Origin'] = 'https://cursor.com';
+
+// 全局设置 axios 代理
+function getGlobalProxyAgent() {
+    const defaultProxy = 'http://127.0.0.1:10809';
+    let proxy = vscode.workspace.getConfiguration().get('http.proxy') as string | undefined;
+    const strictSSL = vscode.workspace.getConfiguration().get('http.proxyStrictSSL') as boolean | undefined;
+    if (!proxy || proxy.trim() === '') {
+        proxy = defaultProxy;
+    }
+    if (proxy) {
+        return new HttpsProxyAgent(proxy, { rejectUnauthorized: strictSSL !== false });
+    }
+    return undefined;
+}
+const globalAgent = getGlobalProxyAgent();
+if (globalAgent) {
+    axios.defaults.httpsAgent = globalAgent;
+    axios.defaults.proxy = false;
+}
 
 export async function getCurrentUsageLimit(token: string, teamId?: number): Promise<UsageLimitResponse> {
     try {
@@ -311,6 +337,10 @@ async function fetchMonthData(token: string, month: number, year: number): Promi
 }
 
 export async function fetchCursorStats(token: string): Promise<CursorStats> {
+    return withNetworkRetry(() => fetchCursorStatsOnce(token), { maxAttempts: 3, baseDelayMs: 700 });
+}
+
+async function fetchCursorStatsOnce(token: string): Promise<CursorStats> {
     // Extract user ID from token
     const userId = token.split('%3A%3A')[0];
 
@@ -328,6 +358,7 @@ export async function fetchCursorStats(token: string): Promise<CursorStats> {
             try {
                 const teamSpend = await getTeamSpend(token, teamInfo.teamId);
                 const userSpend = extractUserSpend(teamSpend, teamInfo.userId);
+
                 
                 // Get individual usage to get the premium request limit (GPT-4)
                 const individualUsage = await axios.get<CursorUsageResponse>('https://cursor.com/api/usage', {
@@ -449,5 +480,67 @@ export async function getStripeSessionUrl(token: string): Promise<string> {
     } catch (error: any) {
         log('[API] Error getting Stripe session URL: ' + error.message, true);
         throw error;
+    }
+}
+
+// 新增：获取用户使用事件数量
+export async function getUsageEventCount(token: string): Promise<number> {
+    try {
+        const now = Date.now();
+        const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
+        const endDate = now;
+        const startDate = now - THIRTY_DAYS;
+        const payload = {
+            teamId: 0,
+            startDate: startDate.toString(),
+            endDate: endDate.toString(),
+            page: 1,
+            pageSize: 10
+        };
+        const response = await withNetworkRetry(
+            () =>
+                axios.post('https://cursor.com/api/dashboard/get-filtered-usage-events', payload, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Referer': 'https://cursor.com/cn/dashboard',
+                        Cookie: `NEXT_LOCALE=cn;WorkosCursorSessionToken=${token}`,
+                    },
+                }),
+            { maxAttempts: 3, baseDelayMs: 500 },
+        );
+        // 返回 totalUsageEventsCount 字段
+        if (response.data && typeof response.data.totalUsageEventsCount === 'number') {
+            return response.data.totalUsageEventsCount;
+        }
+        return 0;
+    } catch (error: any) {
+        log('[API] Error getting usage event count: ' + error.message, true);
+        throw error;
+    }
+}
+
+/** 获取当前计费周期使用量（含使用量百分比） */
+export async function getCurrentPeriodUsage(token: string): Promise<CurrentPeriodUsageResponse | null> {
+    try {
+        const response = await withNetworkRetry(
+            () =>
+                axios.post<CurrentPeriodUsageResponse>(
+                    'https://cursor.com/api/dashboard/get-current-period-usage',
+                    {},
+                    {
+                        headers: {
+                            'Content-Type': 'application/json',
+                            Accept: '*/*',
+                            Referer: 'https://cursor.com/cn/dashboard?tab=spending',
+                            Cookie: `WorkosCursorSessionToken=${token}`,
+                        },
+                    },
+                ),
+            { maxAttempts: 3, baseDelayMs: 500 },
+        );
+        return response.data;
+    } catch (error: any) {
+        log('[API] Error getting current period usage: ' + error.message, true);
+        return null;
     }
 } 

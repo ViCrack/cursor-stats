@@ -1,5 +1,7 @@
 .vscode/**
 .vscode-test/**
+.vfox/
+.vfox.toml
 src/**
 !src/locales/**
 !out/locales/**

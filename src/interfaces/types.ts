@@ -240,4 +240,21 @@ export interface TeamMemberSpend {
     role: string;
     hardLimitOverrideDollars: number;
     fastPremiumRequests?: number;
+}
+
+/** get-current-period-usage 接口返回 */
+export interface CurrentPeriodUsageResponse {
+    billingCycleStart?: string;
+    billingCycleEnd?: string;
+    planUsage?: {
+        totalSpend?: number;
+        includedSpend?: number;
+        bonusSpend?: number;
+        limit?: number;
+        totalPercentUsed?: number;
+        autoPercentUsed?: number;
+        apiPercentUsed?: number;
+        [key: string]: any;
+    };
+    [key: string]: any;
 } 

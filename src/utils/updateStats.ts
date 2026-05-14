@@ -1,6 +1,6 @@
 import { log } from './logger';
 import { getCursorTokenFromDB } from '../services/database';
-import { checkUsageBasedStatus, fetchCursorStats } from '../services/api';
+import { checkUsageBasedStatus, fetchCursorStats, getCurrentPeriodUsage, getUsageEventCount } from '../services/api';
 import { checkAndNotifyUsage, checkAndNotifySpending, checkAndNotifyUnpaidInvoice } from '../handlers/notifications';
 import { 
     startRefreshInterval,
@@ -73,10 +73,39 @@ export async function updateStats(statusBarItem: vscode.StatusBarItem) {
         
         let costText = '';
         
-        // Calculate usage percentages
-        const premiumPercent = Math.round((stats.premiumRequests.current / stats.premiumRequests.limit) * 100);
         let usageBasedPercent = 0;
-        let totalUsageText = '';
+
+        // 使用 get-current-period-usage 接口获取当前周期使用量百分比（状态栏 / tooltip / 通知统一使用）
+        let periodTotalPercent: number | null = null;
+        let periodAutoPercent: number | null = null;
+        let periodApiPercent: number | null = null;
+        let periodUsage: Awaited<ReturnType<typeof getCurrentPeriodUsage>> = null;
+        let usageEventCount: number | null = null;
+        try {
+            const [periodResult, eventCount] = await Promise.all([
+                getCurrentPeriodUsage(token),
+                getUsageEventCount(token).catch(() => null)
+            ]);
+            periodUsage = periodResult;
+            if (periodUsage?.planUsage) {
+                const { totalPercentUsed, autoPercentUsed, apiPercentUsed } = periodUsage.planUsage;
+                if (typeof totalPercentUsed === 'number') {
+                    periodTotalPercent = Math.round(totalPercentUsed);
+                }
+                if (typeof autoPercentUsed === 'number') {
+                    periodAutoPercent = Math.round(autoPercentUsed);
+                }
+                if (typeof apiPercentUsed === 'number') {
+                    periodApiPercent = Math.round(apiPercentUsed);
+                }
+                log(`[Stats] 当前周期使用量: auto=${periodAutoPercent ?? '—'}%, api=${periodApiPercent ?? '—'}%, total=${periodTotalPercent ?? '—'}%`);
+            }
+            if (typeof eventCount === 'number') {
+                usageEventCount = eventCount;
+            }
+        } catch (e) {
+            log('[Stats] 获取周期使用量失败: ' + (e instanceof Error ? e.message : String(e)), true);
+        }
 
         // Use current month if it has data, otherwise fall back to last month
         const activeMonthData = stats.currentMonth.usageBasedPricing.items.length > 0 
@@ -105,20 +134,21 @@ export async function updateStats(statusBarItem: vscode.StatusBarItem) {
             // Convert actual cost currency for status bar display
             const formattedActualCost = await convertAndFormatCurrency(actualTotalCost);
             costText = ` $(credit-card) ${formattedActualCost}`;
-
-            // Status bar should only show premium requests count, not total
-            totalUsageText = ` ${stats.premiumRequests.current}/${stats.premiumRequests.limit}${costText}`;
-        } else {
-            totalUsageText = ` ${stats.premiumRequests.current}/${stats.premiumRequests.limit}`;
         }
 
-        // Set status bar color based on usage type
-        // Always use only premium percent for color calculation, not combined totals
-        const usagePercent = premiumPercent;
+        // 状态栏：auto/api 使用量百分比 + 费用 + 使用事件数（仅展示）
+        const displayAutoPercent = periodAutoPercent !== null ? periodAutoPercent : '—';
+        const displayApiPercent = periodApiPercent !== null ? periodApiPercent : '—';
+        const eventCountText = usageEventCount !== null ? ` | ${usageEventCount}` : '';
+        const totalUsageText = ` ${displayAutoPercent}%/${displayApiPercent}%${costText}${eventCountText}`;
+
+        // 状态栏颜色：使用当前周期 total 使用量百分比
+        const usagePercent = periodTotalPercent !== null ? periodTotalPercent : 0;
         
         log(`[Stats] Color calculation details:`, {
-            premiumRequests: `${stats.premiumRequests.current}/${stats.premiumRequests.limit}`,
-            premiumPercent: premiumPercent,
+            periodAutoPercent,
+            periodApiPercent,
+            periodTotalPercent,
             usageBasedPercent: usageBasedPercent,
             usageBasedEnabled: usageStatus.isEnabled,
             finalUsagePercent: usagePercent
@@ -138,14 +168,8 @@ export async function updateStats(statusBarItem: vscode.StatusBarItem) {
             contentLines.push(t('statusBar.teamSpend'));
         }
         
-        contentLines.push(t('statusBar.premiumFastRequests'));
-        
-        // Format premium requests progress with fixed decimal places
-        const premiumPercentFormatted = Math.round(premiumPercent);
-        const startDate = new Date(stats.premiumRequests.startOfMonth);
-        const endDate = new Date(startDate);
-        endDate.setMonth(endDate.getMonth() + 1);
-
+        // Tooltip：当前计费周期使用量百分比（与状态栏一致）
+        contentLines.push(t('statusBar.currentPeriodUsage'));
         const formatDateWithMonthName = (date: Date) => {
             const day = date.getDate();
             const monthNames = [
@@ -165,11 +189,25 @@ export async function updateStats(statusBarItem: vscode.StatusBarItem) {
             const monthName = monthNames[date.getMonth()];
             return `${day} ${monthName}`;
         };
-
+        const autoPercentFormatted = periodAutoPercent !== null ? `${periodAutoPercent}%` : '—';
+        const apiPercentFormatted = periodApiPercent !== null ? `${periodApiPercent}%` : '—';
+        const totalPercentFormatted = periodTotalPercent !== null ? `${periodTotalPercent}%` : '—';
+        let periodLabel = '';
+        if (periodUsage?.billingCycleStart && periodUsage?.billingCycleEnd) {
+            const start = new Date(parseInt(periodUsage.billingCycleStart, 10));
+            const end = new Date(parseInt(periodUsage.billingCycleEnd, 10));
+            periodLabel = `${formatDateWithMonthName(start)} - ${formatDateWithMonthName(end)}`;
+        } else {
+            const startDate = new Date(stats.premiumRequests.startOfMonth);
+            const endDate = new Date(startDate);
+            endDate.setMonth(endDate.getMonth() + 1);
+            periodLabel = `${formatDateWithMonthName(startDate)} - ${formatDateWithMonthName(endDate)}`;
+        }
         contentLines.push(
-            formatTooltipLine(`   • ${stats.premiumRequests.current}/${stats.premiumRequests.limit} ${t('statusBar.requestsUsed')}`),
-            formatTooltipLine(`   📊 ${premiumPercentFormatted}% ${t('statusBar.utilized')}`),
-            formatTooltipLine(`   ${t('statusBar.fastRequestsPeriod')}: ${formatDateWithMonthName(startDate)} - ${formatDateWithMonthName(endDate)}`),
+            formatTooltipLine(`   🤖 Auto: ${autoPercentFormatted}`),
+            formatTooltipLine(`   🔌 API: ${apiPercentFormatted}`),
+            formatTooltipLine(`   📊 Total: ${totalPercentFormatted} ${t('statusBar.utilized')}`),
+            formatTooltipLine(`   ${t('statusBar.fastRequestsPeriod')}: ${periodLabel}`),
             ''
         );
 
@@ -511,26 +549,21 @@ export async function updateStats(statusBarItem: vscode.StatusBarItem) {
         statusBarItem.show();
         log('[Stats] Stats update completed successfully');
 
-        // Show notifications after ensuring status bar is visible
+        // Show notifications after ensuring status bar is visible（使用当前周期使用量百分比）
         if (usageStatus.isEnabled) {
             setTimeout(() => {
-                // First check premium usage
-                const premiumPercent = Math.round((stats.premiumRequests.current / stats.premiumRequests.limit) * 100);
                 checkAndNotifyUsage({
-                    percentage: premiumPercent,
+                    percentage: usagePercent,
                     type: 'premium'
                 });
-
-                // Only check usage-based if premium is over limit
-                if (premiumPercent >= 100) {
+                if (usagePercent >= 100) {
                     checkAndNotifyUsage({
                         percentage: usageBasedPercent,
                         type: 'usage-based',
                         limit: usageStatus.limit,
-                        premiumPercentage: premiumPercent
+                        premiumPercentage: usagePercent
                     });
                 }
-
                 if (activeMonthData.usageBasedPricing.hasUnpaidMidMonthInvoice) {
                     checkAndNotifyUnpaidInvoice(token);
                 }
@@ -538,7 +571,7 @@ export async function updateStats(statusBarItem: vscode.StatusBarItem) {
         } else {
             setTimeout(() => {
                 checkAndNotifyUsage({
-                    percentage: premiumPercent,
+                    percentage: usagePercent,
                     type: 'premium'
                 });
             }, 1000);

@@ -1,6 +1,7 @@
 {
   "statusBar": {
     "premiumFastRequests": "Премиум Жылдам Сұраулар",
+    "currentPeriodUsage": "Ағымдағы кезең пайдалануы",
     "usageBasedPricing": "Пайдалану Негізіндегі Баға",
     "teamSpend": "Команда Шығыны",
     "period": "Кезең",

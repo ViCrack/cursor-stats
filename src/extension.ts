@@ -27,7 +27,7 @@ const RELEASE_CHECK_INTERVAL = 1000 * 60 * 60; // Check every hour
 
 export function getRefreshIntervalMs(): number {
   const config = vscode.workspace.getConfiguration('cursorStats');
-  const intervalSeconds = Math.max(config.get('refreshInterval', 30), 5); // Minimum 5 seconds
+  const intervalSeconds = Math.max(config.get('refreshInterval', 120), 10); // Minimum 10 seconds
   return intervalSeconds * 1000;
 }
 
@@ -391,7 +391,7 @@ export async function activate(context: vscode.ExtensionContext) {
     setTimeout(async () => {
       await updateStats(statusBarItem);
       // Check for updates after initial stats are loaded
-      await checkForUpdates(lastReleaseCheck, RELEASE_CHECK_INTERVAL);
+      // await checkForUpdates(lastReleaseCheck, RELEASE_CHECK_INTERVAL);
     }, 1500);
 
     // Register configuration for the progress bars

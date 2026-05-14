@@ -3,6 +3,7 @@ export interface LanguagePack {
   // Status bar related
   statusBar: {
     premiumFastRequests: string;
+    currentPeriodUsage: string;
     usageBasedPricing: string;
     teamSpend: string;
     period: string;

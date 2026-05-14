@@ -2,9 +2,9 @@
 
 <div align="center">
 
-> A powerful Cursor extension that provides real-time monitoring of your Cursor subscription usage,
+> 自用向扩展：在状态栏实时展示 Cursor 订阅用量（含快速请求、按量计费等）。
 >
-> including fast requests and usage-based pricing information.
+> 本仓库在上游项目基础上做了功能改进与维护，仅供个人学习与本地使用，不代表官方发行版。
 
 #### [Features](#section-features) • [Screenshots](#section-screenshots) • [Configuration](#section-configuration) • [Commands](#section-commands) • [Installation](#section-install) • [Support](#-support)
 

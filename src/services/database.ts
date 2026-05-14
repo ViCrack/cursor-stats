@@ -5,7 +5,7 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import initSqlJs from 'sql.js';
 import { log } from '../utils/logger';
-import { execSync } from 'child_process';
+import { execFileSync, execSync } from 'child_process';
 
 // use globalStorageUri to get the user directory path
 // support Portable mode : https://code.visualstudio.com/docs/editor/portable
@@ -54,6 +54,98 @@ export function getCursorDBPath(): string {
   return path.join(userDirPath, 'User', 'globalStorage', 'state.vscdb');
 }
 
+const TOKEN_SELECT_SQL =
+  "SELECT value FROM ItemTable WHERE key = 'cursorAuth/accessToken'";
+
+function resolveSqlite3Executable(): string | undefined {
+  const config = vscode.workspace.getConfiguration('cursorStats');
+  const custom = config.get<string>('sqlite3Path')?.trim();
+  if (custom) {
+    if (fs.existsSync(custom)) {
+      return custom;
+    }
+    log(`[Database] cursorStats.sqlite3Path not found: ${custom}`, true);
+    return undefined;
+  }
+  for (const name of ['sqlite3', 'sqlite3.exe']) {
+    try {
+      execFileSync(name, ['-version'], { stdio: 'ignore', windowsHide: true });
+      return name;
+    } catch {
+      /* try next */
+    }
+  }
+  return undefined;
+}
+
+/** Read access token via sqlite3 CLI (avoids Node ~2 GiB Buffer limit on readFileSync). */
+function readAccessTokenViaSqlite3Cli(dbPath: string): string | undefined {
+  const sqlite3 = resolveSqlite3Executable();
+  if (!sqlite3) {
+    log(
+      '[Database] sqlite3 executable not found. Install SQLite (sqlite3 on PATH) or set cursorStats.sqlite3Path to read very large state.vscdb files.',
+      true,
+    );
+    return undefined;
+  }
+  try {
+    const out = execFileSync(sqlite3, [dbPath, TOKEN_SELECT_SQL], {
+      encoding: 'utf8',
+      maxBuffer: 16 * 1024 * 1024,
+      windowsHide: true,
+    });
+    const token = out.trim();
+    return token || undefined;
+  } catch (error: any) {
+    log('[Database] sqlite3 CLI query failed: ' + (error?.message ?? error), true);
+    if (error?.stderr) {
+      log('[Database] sqlite3 stderr: ' + String(error.stderr).slice(0, 500), true);
+    }
+    return undefined;
+  }
+}
+
+function buildSessionTokenFromAccessToken(token: string): string | undefined {
+  try {
+    const decoded = jwt.decode(token, { complete: true });
+
+    if (!decoded || !decoded.payload || !decoded.payload.sub) {
+      log('[Database] Invalid JWT structure: ' + JSON.stringify({ decoded }), true);
+      return undefined;
+    }
+
+    const sub = decoded.payload.sub.toString();
+    const userId = sub.split('|')[1];
+    const sessionToken = `${userId}%3A%3A${token}`;
+    log(`[Database] Created session token, length: ${sessionToken.length}`);
+    return sessionToken;
+  } catch (error: any) {
+    log('[Database] Error processing token: ' + error, true);
+    log(
+      '[Database] Error details: ' +
+        JSON.stringify({
+          name: error.name,
+          message: error.message,
+          stack: error.stack,
+        }),
+      true,
+    );
+    return undefined;
+  }
+}
+
+function isFileTooLargeForBuffer(err: unknown): boolean {
+  if (!err || typeof err !== 'object') {
+    return false;
+  }
+  const anyErr = err as NodeJS.ErrnoException & { code?: string };
+  if (anyErr.code === 'ERR_FS_FILE_TOO_LARGE') {
+    return true;
+  }
+  const msg = String(anyErr.message ?? '');
+  return msg.includes('greater than 2 GiB');
+}
+
 export async function getCursorTokenFromDB(): Promise<string | undefined> {
   try {
     const dbPath = getCursorDBPath();
@@ -64,50 +156,43 @@ export async function getCursorTokenFromDB(): Promise<string | undefined> {
       return undefined;
     }
 
-    const dbBuffer = fs.readFileSync(dbPath);
-    const SQL = await initSqlJs();
-    const db = new SQL.Database(new Uint8Array(dbBuffer));
-
-    const result = db.exec("SELECT value FROM ItemTable WHERE key = 'cursorAuth/accessToken'");
-
-    if (!result.length || !result[0].values.length) {
-      log('[Database] No token found in database');
-      db.close();
-      return undefined;
-    }
-
-    const token = result[0].values[0][0] as string;
-    log(`[Database] Token starts with: ${token.substring(0, 20)}...`);
+    let accessToken: string | undefined;
 
     try {
-      const decoded = jwt.decode(token, { complete: true });
+      const dbBuffer = fs.readFileSync(dbPath);
+      const SQL = await initSqlJs();
+      const db = new SQL.Database(new Uint8Array(dbBuffer));
 
-      if (!decoded || !decoded.payload || !decoded.payload.sub) {
-        log('[Database] Invalid JWT structure: ' + JSON.stringify({ decoded }), true);
+      const result = db.exec(TOKEN_SELECT_SQL);
+
+      if (!result.length || !result[0].values.length) {
+        log('[Database] No token found in database');
         db.close();
         return undefined;
       }
 
-      const sub = decoded.payload.sub.toString();
-      const userId = sub.split('|')[1];
-      const sessionToken = `${userId}%3A%3A${token}`;
-      log(`[Database] Created session token, length: ${sessionToken.length}`);
+      accessToken = result[0].values[0][0] as string;
+      log(`[Database] Access token from DB, length: ${accessToken.length}`);
       db.close();
-      return sessionToken;
-    } catch (error: any) {
-      log('[Database] Error processing token: ' + error, true);
-      log(
-        '[Database] Error details: ' +
-          JSON.stringify({
-            name: error.name,
-            message: error.message,
-            stack: error.stack,
-          }),
-        true,
-      );
-      db.close();
+    } catch (readErr: unknown) {
+      if (isFileTooLargeForBuffer(readErr)) {
+        log(
+          '[Database] state.vscdb exceeds Node in-memory limit; falling back to sqlite3 CLI reader.',
+        );
+        accessToken = readAccessTokenViaSqlite3Cli(dbPath);
+        if (!accessToken) {
+          return undefined;
+        }
+      } else {
+        throw readErr;
+      }
+    }
+
+    if (!accessToken) {
       return undefined;
     }
+
+    return buildSessionTokenFromAccessToken(accessToken);
   } catch (error: any) {
     log('[Database] Error opening database: ' + error, true);
     log(

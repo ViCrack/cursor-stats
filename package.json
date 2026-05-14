@@ -1,8 +1,8 @@
 {
   "name": "cursor-stats",
   "displayName": "Cursor Stats",
-  "description": "A Cursor extension for monitoring usage.",
-  "version": "1.1.5",
+  "description": "自用：在状态栏展示 Cursor 订阅用量（快速请求、按量计费等）。基于上游扩展做了功能改进与本地维护",
+  "version": "3.1.13",
   "publisher": "Dwtexe",
   "icon": "images/icon.png",
   "repository": {
@@ -184,7 +184,7 @@
           },
           "cursorStats.refreshInterval": {
             "type": "number",
-            "default": 60,
+            "default": 600,
             "minimum": 10,
             "description": "How often to refresh the stats (in seconds). Minimum 10 seconds.",
             "scope": "window"
@@ -327,6 +327,12 @@
             "description": "Custom path to the Cursor database file. Leave empty to use default location.",
             "scope": "window"
           },
+          "cursorStats.sqlite3Path": {
+            "type": "string",
+            "default": "",
+            "description": "Path to the sqlite3 executable. Used when state.vscdb is larger than Node can read into memory (~2 GiB). Leave empty to use sqlite3 from PATH.",
+            "scope": "window"
+          },
           "cursorStats.excludeWeekends": {
             "type": "boolean",
             "default": false,
@@ -393,12 +399,13 @@
     "@typescript-eslint/parser": "8.32.1",
     "@vscode/test-cli": "^0.0.10",
     "eslint": "9.27.0",
-    "typescript": "5.8.3",
-    "prettier": "^3.3.2"
+    "prettier": "^3.3.2",
+    "typescript": "5.8.3"
   },
   "dependencies": {
     "axios": "1.9.0",
     "glob": "^11.0.2",
+    "https-proxy-agent": "^7.0.6",
     "jsonwebtoken": "^9.0.2",
     "lru-cache": "^11.1.0",
     "marked": "15.0.12",

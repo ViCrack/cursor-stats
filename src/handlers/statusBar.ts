@@ -86,8 +86,85 @@ export async function createMarkdownTooltip(lines: string[], isError: boolean = 
         tooltip.appendMarkdown(`> ⚠️ **${t('statusBar.errorState')}**\n\n`);
         tooltip.appendMarkdown(lines.join('\n\n'));
     } else {
-        // Premium Requests Section
-        // Check for the translated premium fast requests section
+        // 当前计费周期使用量区块（优先）
+        const currentPeriodSection = lines.find(line => line === t('statusBar.currentPeriodUsage'));
+        if (currentPeriodSection) {
+            tooltip.appendMarkdown('<div align="center">\n\n');
+            tooltip.appendMarkdown(`### 🚀 ${t('statusBar.currentPeriodUsage')}\n\n`);
+            tooltip.appendMarkdown('</div>\n\n');
+            const autoPercentLine = lines.find(line => line.includes('🤖 Auto:'));
+            const apiPercentLine = lines.find(line => line.includes('🔌 API:'));
+            const totalPercentLine = lines.find(line => line.includes('📊 Total:'));
+            const startOfMonthLine = lines.find(line => line.includes(t('statusBar.fastRequestsPeriod')));
+            const hasSplitPercentLines = Boolean(autoPercentLine || apiPercentLine || totalPercentLine);
+            if (hasSplitPercentLines) {
+                if (startOfMonthLine) {
+                    const periodInfo = startOfMonthLine.split(':')[1].trim();
+                    tooltip.appendMarkdown(`<div align="center">${periodInfo}</div>\n\n`);
+                }
+                if (autoPercentLine) {
+                    const autoText = autoPercentLine.replace(/^.*🤖\s*/, '🤖 ');
+                    tooltip.appendMarkdown(`<div align="center">${autoText}</div>\n\n`);
+                }
+                if (apiPercentLine) {
+                    const apiText = apiPercentLine.replace(/^.*🔌\s*/, '🔌 ');
+                    tooltip.appendMarkdown(`<div align="center">${apiText}</div>\n\n`);
+                }
+                if (totalPercentLine) {
+                    const totalText = totalPercentLine.replace(/^.*📊\s*/, '📊 ');
+                    tooltip.appendMarkdown(`<div align="center">${totalText}</div>\n\n`);
+                }
+
+                // Preserve the existing progress bar behavior based on Total percentage.
+                const totalPercentMatch = totalPercentLine ? totalPercentLine.match(/(\d+)%/) : null;
+                const totalPercent = totalPercentMatch ? parseInt(totalPercentMatch[1], 10) : null;
+                if (shouldShowProgressBars() && totalPercent !== null) {
+                    const usageProgressBar = createUsageProgressBar(totalPercent, 100, t('statusBar.usage'));
+                    if (usageProgressBar) {
+                        tooltip.appendMarkdown(`<div align="center">${usageProgressBar}</div>\n\n`);
+                    }
+                }
+                if (shouldShowProgressBars() && startOfMonthLine) {
+                    const periodInfo = startOfMonthLine.split(':')[1].trim();
+                    const periodProgressBar = createPeriodProgressBar(periodInfo, undefined, t('statusBar.period'));
+                    if (periodProgressBar) {
+                        tooltip.appendMarkdown(`<div align="center">${periodProgressBar}</div>\n\n`);
+                    }
+                }
+            } else {
+                // Legacy fallback: single utilized line.
+                const percentLine = lines.find(line => line.includes(t('statusBar.utilized')));
+                const percentMatch = percentLine ? percentLine.match(/(\d+)%|—%/) : null;
+                const percent = percentMatch && percentMatch[1] ? parseInt(percentMatch[1], 10) : null;
+                if (percent !== null) {
+                    let displayText = `${percent}% ${t('statusBar.used')}`;
+                    if (startOfMonthLine) {
+                        const periodInfo = startOfMonthLine.split(':')[1].trim();
+                        displayText = `${periodInfo} ● ${displayText}`;
+                        tooltip.appendMarkdown(`<div align="center">${displayText}</div>\n\n`);
+                        if (shouldShowProgressBars()) {
+                            const usageProgressBar = createUsageProgressBar(percent, 100, t('statusBar.usage'));
+                            if (usageProgressBar) {
+                                tooltip.appendMarkdown(`<div align="center">${usageProgressBar}</div>\n\n`);
+                            }
+                            const periodProgressBar = createPeriodProgressBar(periodInfo, undefined, t('statusBar.period'));
+                            if (periodProgressBar) {
+                                tooltip.appendMarkdown(`<div align="center">${periodProgressBar}</div>\n\n`);
+                            }
+                        }
+                    } else {
+                        tooltip.appendMarkdown(`<div align="center">${displayText}</div>\n\n`);
+                        if (shouldShowProgressBars()) {
+                            const usageProgressBar = createUsageProgressBar(percent, 100, t('statusBar.usage'));
+                            if (usageProgressBar) {
+                                tooltip.appendMarkdown(`<div align="center">${usageProgressBar}</div>\n\n`);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        // Premium Requests Section（旧格式兼容）
         const premiumRequestsSection = lines.find(line => line === t('statusBar.premiumFastRequests'));
         if (premiumRequestsSection) {
             tooltip.appendMarkdown('<div align="center">\n\n');

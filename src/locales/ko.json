@@ -1,6 +1,7 @@
 {
   "statusBar": {
     "premiumFastRequests": "프리미엄 빠른 요청",
+    "currentPeriodUsage": "현재 결제 주기 사용량",
     "usageBasedPricing": "사용량 기반 가격",
     "teamSpend": "팀 지출",
     "period": "기간",
