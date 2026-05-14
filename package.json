@@ -184,7 +184,7 @@
           },
           "cursorStats.refreshInterval": {
             "type": "number",
-            "default": 600,
+            "default": 120,
             "minimum": 10,
             "description": "How often to refresh the stats (in seconds). Minimum 10 seconds.",
             "scope": "window"
