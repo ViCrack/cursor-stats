@@ -2,7 +2,7 @@
   "name": "cursor-stats",
   "displayName": "Cursor Stats",
   "description": "自用：在状态栏展示 Cursor 订阅用量（快速请求、按量计费等）。基于上游扩展做了功能改进与本地维护",
-  "version": "3.1.13",
+  "version": "3.1.14",
   "publisher": "Dwtexe",
   "icon": "images/icon.png",
   "repository": {

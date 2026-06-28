@@ -143,7 +143,15 @@ function isFileTooLargeForBuffer(err: unknown): boolean {
     return true;
   }
   const msg = String(anyErr.message ?? '');
-  return msg.includes('greater than 2 GiB');
+  if (msg.includes('greater than 2 GiB')) {
+    return true;
+  }
+  // Uint8Array / ArrayBuffer allocation failure when the file is very large
+  const isRangeError = err instanceof RangeError || (anyErr as any).name === 'RangeError';
+  if (isRangeError && msg.includes('Array buffer allocation failed')) {
+    return true;
+  }
+  return false;
 }
 
 export async function getCursorTokenFromDB(): Promise<string | undefined> {
@@ -157,6 +165,19 @@ export async function getCursorTokenFromDB(): Promise<string | undefined> {
     }
 
     let accessToken: string | undefined;
+
+    const ONE_GB = 1024 * 1024 * 1024;
+    const fileSize = fs.statSync(dbPath).size;
+    if (fileSize > ONE_GB) {
+      log(
+        `[Database] state.vscdb is ${(fileSize / ONE_GB).toFixed(2)} GiB, skipping in-memory load; using sqlite3 CLI directly.`,
+      );
+      accessToken = readAccessTokenViaSqlite3Cli(dbPath);
+      if (!accessToken) {
+        return undefined;
+      }
+      return buildSessionTokenFromAccessToken(accessToken);
+    }
 
     try {
       const dbBuffer = fs.readFileSync(dbPath);
