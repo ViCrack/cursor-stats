@@ -29,7 +29,7 @@ export function isTransientNetworkError(error: unknown): boolean {
     }
   }
   const message = typeof err.message === 'string' ? err.message : String(err);
-  if (/SSL|TLS|handshake|EPROTO|socket hang up|timed out|ECONNRESET|ENETUNREACH|EHOSTUNREACH/i.test(message)) {
+  if (/SSL|TLS|OPENSSL|BAD_DECRYPT|handshake|EPROTO|socket hang up|timed out|ECONNRESET|ENETUNREACH|EHOSTUNREACH/i.test(message)) {
     return true;
   }
   // Axios：无 response 且已发出请求，多为网络层断开

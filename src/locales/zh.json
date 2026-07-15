@@ -1,6 +1,6 @@
 {
   "statusBar": {
-    "premiumFastRequests": "高级快速请求",
+    "premiumFastRequests": "套餐用量",
     "currentPeriodUsage": "当前周期使用量",
     "usageBasedPricing": "使用量计费",
     "teamSpend": "团队支出",
@@ -33,8 +33,11 @@
     "noTokenFound": "Cursor Stats: 未找到令牌",
     "couldNotRetrieveToken": "⚠️ 无法从数据库检索 Cursor 令牌",
     "requestsUsed": "已使用请求",
-    "fastRequestsPeriod": "快速请求周期",
+    "fastRequestsPeriod": "计费周期",
     "usageBasedPeriod": "使用量计费周期",
+    "autoUsage": "Auto",
+    "advancedModelsUsage": "高级模型",
+    "totalUsage": "总计",
     "currentUsage": "当前使用量",
     "total": "总计",
     "unpaid": "未付",
@@ -64,12 +67,12 @@
     }
   },
   "notifications": {
-    "usageThresholdReached": "高级请求使用量已达到 {percentage}%",
-    "usageExceededLimit": "高级请求使用量已超出限制 ({percentage}%)",
+    "usageThresholdReached": "高级模型使用量已达到 {percentage}%",
+    "usageExceededLimit": "高级模型使用量已超出限制 ({percentage}%)",
     "spendingThresholdReached": "您的 Cursor 使用费用已达到 {amount}",
     "unpaidInvoice": "⚠️ 您有未付的月中账单，请支付以继续使用基于使用量的定价。",
     "enableUsageBasedTitle": "启用使用量计费",
-    "enableUsageBasedDetail": "启用使用量计费以继续使用高级模型。",
+    "enableUsageBasedDetail": "启用使用量计费以继续使用高级模型（API 池）。",
     "viewSettingsTitle": "查看设置",
     "viewSettingsDetail": "点击查看设置来管理您的使用限制。",
     "manageLimitTitle": "管理限制",

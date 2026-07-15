@@ -1,6 +1,6 @@
 {
   "statusBar": {
-    "premiumFastRequests": "Premium Fast Requests",
+    "premiumFastRequests": "Plan Usage",
     "currentPeriodUsage": "Current period usage",
     "usageBasedPricing": "Usage-Based Pricing",
     "teamSpend": "Team Spend",
@@ -33,8 +33,11 @@
     "noTokenFound": "Cursor Stats: No token found",
     "couldNotRetrieveToken": "⚠️ Could not retrieve Cursor token from database",
     "requestsUsed": "requests used",
-    "fastRequestsPeriod": "Fast Requests Period",
+    "fastRequestsPeriod": "Billing Period",
     "usageBasedPeriod": "Usage Based Period",
+    "autoUsage": "Auto",
+    "advancedModelsUsage": "Advanced Models",
+    "totalUsage": "Total",
     "currentUsage": "Current Usage",
     "total": "Total",
     "unpaid": "Unpaid",
@@ -88,12 +91,12 @@
     "installedMessage": "Cursor Stats {version} has been installed"
   },
   "notifications": {
-    "usageThresholdReached": "Premium request usage has reached {percentage}%",
-    "usageExceededLimit": "Premium request usage has exceeded limit ({percentage}%)",
+    "usageThresholdReached": "Advanced model usage has reached {percentage}%",
+    "usageExceededLimit": "Advanced model usage has exceeded limit ({percentage}%)",
     "spendingThresholdReached": "Your Cursor usage spending has reached {amount}",
     "unpaidInvoice": "⚠️ You have an unpaid mid-month invoice. Please pay it to continue using usage-based pricing.",
     "enableUsageBasedTitle": "Enable Usage-Based",
-    "enableUsageBasedDetail": "Enable usage-based pricing to continue using premium models.",
+    "enableUsageBasedDetail": "Enable usage-based pricing to continue using advanced models (API pool).",
     "viewSettingsTitle": "View Settings",
     "viewSettingsDetail": "Click View Settings to manage your usage limits.",
     "manageLimitTitle": "Manage Limit",

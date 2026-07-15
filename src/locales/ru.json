@@ -1,6 +1,6 @@
 {
   "statusBar": {
-    "premiumFastRequests": "Премиум Быстрые Запросы",
+    "premiumFastRequests": "Использование плана",
     "currentPeriodUsage": "Использование текущего периода",
     "usageBasedPricing": "Ценообразование по Использованию",
     "teamSpend": "Расходы Команды",
@@ -33,8 +33,11 @@
     "noTokenFound": "Статистика Cursor: Токен не найден",
     "couldNotRetrieveToken": "⚠️ Не удалось получить токен Cursor из базы данных",
     "requestsUsed": "запросов использовано",
-    "fastRequestsPeriod": "Период Быстрых Запросов",
+    "fastRequestsPeriod": "Расчетный период",
     "usageBasedPeriod": "Период Ценообразования по Использованию",
+    "autoUsage": "Auto",
+    "advancedModelsUsage": "Продвинутые модели",
+    "totalUsage": "Всего",
     "currentUsage": "Текущее Использование",
     "total": "Всего",
     "unpaid": "Неоплачено",
@@ -88,12 +91,12 @@
     "installedMessage": "Cursor Stats {version} установлен"
   },
   "notifications": {
-    "usageThresholdReached": "Использование премиум запросов достигло {percentage}%",
-    "usageExceededLimit": "Использование премиум запросов превысило лимит ({percentage}%)",
+    "usageThresholdReached": "Использование продвинутых моделей достигло {percentage}%",
+    "usageExceededLimit": "Использование продвинутых моделей превысило лимит ({percentage}%)",
     "spendingThresholdReached": "Ваши расходы на использование Cursor достигли {amount}",
     "unpaidInvoice": "⚠️ У вас есть неоплаченный счет в середине месяца. Пожалуйста, оплатите его, чтобы продолжить использование ценообразования по использованию.",
     "enableUsageBasedTitle": "Включить Ценообразование по Использованию",
-    "enableUsageBasedDetail": "Включите ценообразование по использованию для продолжения использования премиум моделей.",
+    "enableUsageBasedDetail": "Включите ценообразование по использованию для продолжения использования продвинутых моделей (API-пул).",
     "viewSettingsTitle": "Посмотреть Настройки",
     "viewSettingsDetail": "Нажмите Посмотреть Настройки для управления лимитами использования.",
     "manageLimitTitle": "Управлять Лимитом",

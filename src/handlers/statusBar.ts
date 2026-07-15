@@ -92,9 +92,9 @@ export async function createMarkdownTooltip(lines: string[], isError: boolean = 
             tooltip.appendMarkdown('<div align="center">\n\n');
             tooltip.appendMarkdown(`### 🚀 ${t('statusBar.currentPeriodUsage')}\n\n`);
             tooltip.appendMarkdown('</div>\n\n');
-            const autoPercentLine = lines.find(line => line.includes('🤖 Auto:'));
-            const apiPercentLine = lines.find(line => line.includes('🔌 API:'));
-            const totalPercentLine = lines.find(line => line.includes('📊 Total:'));
+            const autoPercentLine = lines.find(line => line.includes(`🤖 ${t('statusBar.autoUsage')}:`));
+            const apiPercentLine = lines.find(line => line.includes(`⚡ ${t('statusBar.advancedModelsUsage')}:`));
+            const totalPercentLine = lines.find(line => line.includes(`📊 ${t('statusBar.totalUsage')}:`));
             const startOfMonthLine = lines.find(line => line.includes(t('statusBar.fastRequestsPeriod')));
             const hasSplitPercentLines = Boolean(autoPercentLine || apiPercentLine || totalPercentLine);
             if (hasSplitPercentLines) {
@@ -107,7 +107,7 @@ export async function createMarkdownTooltip(lines: string[], isError: boolean = 
                     tooltip.appendMarkdown(`<div align="center">${autoText}</div>\n\n`);
                 }
                 if (apiPercentLine) {
-                    const apiText = apiPercentLine.replace(/^.*🔌\s*/, '🔌 ');
+                    const apiText = apiPercentLine.replace(/^.*⚡\s*/, '⚡ ');
                     tooltip.appendMarkdown(`<div align="center">${apiText}</div>\n\n`);
                 }
                 if (totalPercentLine) {

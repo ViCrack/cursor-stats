@@ -1,6 +1,6 @@
 {
   "statusBar": {
-    "premiumFastRequests": "プレミアム高速リクエスト",
+    "premiumFastRequests": "プラン使用量",
     "currentPeriodUsage": "現在の請求期間の使用量",
     "usageBasedPricing": "使用量ベース課金",
     "teamSpend": "チーム支出",
@@ -33,8 +33,11 @@
     "noTokenFound": "Cursor Stats: トークンが見つかりません",
     "couldNotRetrieveToken": "⚠️ データベースからCursorトークンを取得できませんでした",
     "requestsUsed": "使用済みリクエスト",
-    "fastRequestsPeriod": "高速リクエスト期間",
+    "fastRequestsPeriod": "請求期間",
     "usageBasedPeriod": "使用量ベース課金期間",
+    "autoUsage": "Auto",
+    "advancedModelsUsage": "高度なモデル",
+    "totalUsage": "合計",
     "currentUsage": "現在の使用量",
     "total": "合計",
     "unpaid": "未払い",
@@ -88,12 +91,12 @@
     "installedMessage": "Cursor Stats {version}がインストールされました"
   },
   "notifications": {
-    "usageThresholdReached": "プレミアムリクエストの使用量が{percentage}%に達しました",
-    "usageExceededLimit": "プレミアムリクエストの使用量が制限を超えました（{percentage}%）",
+    "usageThresholdReached": "高度なモデルの使用量が{percentage}%に達しました",
+    "usageExceededLimit": "高度なモデルの使用量が制限を超えました（{percentage}%）",
     "spendingThresholdReached": "Cursorの使用料金が{amount}に達しました",
     "unpaidInvoice": "⚠️ 未払いの月中請求書があります。使用量ベース課金を継続するには支払いをお願いします。",
     "enableUsageBasedTitle": "使用量ベース課金を有効化",
-    "enableUsageBasedDetail": "プレミアムモデルを使用するには使用量ベース課金を有効にしてください。",
+    "enableUsageBasedDetail": "高度なモデル（APIプール）を継続利用するには使用量ベース課金を有効にしてください。",
     "viewSettingsTitle": "設定を表示",
     "viewSettingsDetail": "使用制限を管理するには設定を表示をクリックしてください。",
     "manageLimitTitle": "制限を管理",

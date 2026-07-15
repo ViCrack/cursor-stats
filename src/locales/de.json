@@ -1,6 +1,6 @@
 {
   "statusBar": {
-    "premiumFastRequests": "Premium-Anfragen",
+    "premiumFastRequests": "Tarifnutzung",
     "currentPeriodUsage": "Aktuelle Abrechnungsperiode",
     "usageBasedPricing": "Nutzungsbasierte Abrechnung",
     "teamSpend": "Team-Nutzung",
@@ -33,8 +33,11 @@
     "noTokenFound": "Cursor Stats: Kein Token gefunden",
     "couldNotRetrieveToken": "⚠️ Cursor Token konnte nicht aus der Datenbank abgerufen werden",
     "requestsUsed": "Anfragen verwendet",
-    "fastRequestsPeriod": "Schnelle Anfragen Zeitraum",
+    "fastRequestsPeriod": "Abrechnungszeitraum",
     "usageBasedPeriod": "Nutzungsbasierter Zeitraum",
+    "autoUsage": "Auto",
+    "advancedModelsUsage": "Erweiterte Modelle",
+    "totalUsage": "Gesamt",
     "currentUsage": "Aktuelle Nutzung",
     "total": "Gesamt",
     "unpaid": "Unbezahlt",
@@ -88,12 +91,12 @@
     "installedMessage": "Cursor Stats {version} wurde installiert"
   },
   "notifications": {
-    "usageThresholdReached": "Premium-Anfragen-Nutzung hat {percentage}% erreicht",
-    "usageExceededLimit": "Premium-Anfragen-Nutzung hat das Limit überschritten ({percentage}%)",
+    "usageThresholdReached": "Nutzung erweiterter Modelle hat {percentage}% erreicht",
+    "usageExceededLimit": "Nutzung erweiterter Modelle hat das Limit überschritten ({percentage}%)",
     "spendingThresholdReached": "Ihre Cursor-Nutzungsausgaben haben {amount} erreicht",
     "unpaidInvoice": "⚠️ Sie haben eine unbezahlte Monatsmitte-Rechnung. Bitte bezahlen Sie diese, um die nutzungsbasierte Abrechnung weiter zu nutzen.",
     "enableUsageBasedTitle": "Nutzungsbasiert aktivieren",
-    "enableUsageBasedDetail": "Aktivieren Sie die nutzungsbasierte Abrechnung, um Premium-Modelle weiter zu nutzen.",
+    "enableUsageBasedDetail": "Aktivieren Sie die nutzungsbasierte Abrechnung, um erweiterte Modelle (API-Pool) weiter zu nutzen.",
     "viewSettingsTitle": "Einstellungen anzeigen",
     "viewSettingsDetail": "Klicken Sie auf Einstellungen anzeigen, um Ihre Nutzungslimits zu verwalten.",
     "manageLimitTitle": "Limit verwalten",

@@ -39,6 +39,9 @@ export interface LanguagePack {
     requestsUsed: string;
     fastRequestsPeriod: string;
     usageBasedPeriod: string;
+    autoUsage: string;
+    advancedModelsUsage: string;
+    totalUsage: string;
     currentUsage: string;
     total: string;
     unpaid: string;

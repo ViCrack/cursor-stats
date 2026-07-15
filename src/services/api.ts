@@ -13,24 +13,24 @@ import { HttpsProxyAgent } from 'https-proxy-agent';
 axios.defaults.headers.common['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36 Edg/138.0.0.0';
 axios.defaults.headers.common['Origin'] = 'https://cursor.com';
 
-// 全局设置 axios 代理
-function getGlobalProxyAgent() {
-    const defaultProxy = 'http://127.0.0.1:10809';
-    let proxy = vscode.workspace.getConfiguration().get('http.proxy') as string | undefined;
+// 仅使用 VS Code / Cursor 的 http.proxy 配置；未配置则直连
+function applyProxyFromVscodeConfig() {
+    const proxy = (vscode.workspace.getConfiguration().get('http.proxy') as string | undefined)?.trim();
     const strictSSL = vscode.workspace.getConfiguration().get('http.proxyStrictSSL') as boolean | undefined;
-    if (!proxy || proxy.trim() === '') {
-        proxy = defaultProxy;
-    }
     if (proxy) {
-        return new HttpsProxyAgent(proxy, { rejectUnauthorized: strictSSL !== false });
+        axios.defaults.httpsAgent = new HttpsProxyAgent(proxy, { rejectUnauthorized: strictSSL !== false });
+        axios.defaults.proxy = false;
+    } else {
+        delete axios.defaults.httpsAgent;
+        axios.defaults.proxy = false;
     }
-    return undefined;
 }
-const globalAgent = getGlobalProxyAgent();
-if (globalAgent) {
-    axios.defaults.httpsAgent = globalAgent;
-    axios.defaults.proxy = false;
-}
+applyProxyFromVscodeConfig();
+vscode.workspace.onDidChangeConfiguration((e) => {
+    if (e.affectsConfiguration('http.proxy') || e.affectsConfiguration('http.proxyStrictSSL')) {
+        applyProxyFromVscodeConfig();
+    }
+});
 
 export async function getCurrentUsageLimit(token: string, teamId?: number): Promise<UsageLimitResponse> {
     try {

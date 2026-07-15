@@ -144,6 +144,8 @@ export async function updateStats(statusBarItem: vscode.StatusBarItem) {
 
         // 状态栏颜色：使用当前周期 total 使用量百分比
         const usagePercent = periodTotalPercent !== null ? periodTotalPercent : 0;
+        // 高级模型（API 池）通知：使用 periodApiPercent
+        const advancedModelsPercent = periodApiPercent !== null ? periodApiPercent : 0;
         
         log(`[Stats] Color calculation details:`, {
             periodAutoPercent,
@@ -151,7 +153,8 @@ export async function updateStats(statusBarItem: vscode.StatusBarItem) {
             periodTotalPercent,
             usageBasedPercent: usageBasedPercent,
             usageBasedEnabled: usageStatus.isEnabled,
-            finalUsagePercent: usagePercent
+            finalUsagePercent: usagePercent,
+            advancedModelsPercent
         });
         
         statusBarItem.color = getStatusBarColor(usagePercent);
@@ -204,9 +207,9 @@ export async function updateStats(statusBarItem: vscode.StatusBarItem) {
             periodLabel = `${formatDateWithMonthName(startDate)} - ${formatDateWithMonthName(endDate)}`;
         }
         contentLines.push(
-            formatTooltipLine(`   🤖 Auto: ${autoPercentFormatted}`),
-            formatTooltipLine(`   🔌 API: ${apiPercentFormatted}`),
-            formatTooltipLine(`   📊 Total: ${totalPercentFormatted} ${t('statusBar.utilized')}`),
+            formatTooltipLine(`   🤖 ${t('statusBar.autoUsage')}: ${autoPercentFormatted}`),
+            formatTooltipLine(`   ⚡ ${t('statusBar.advancedModelsUsage')}: ${apiPercentFormatted}`),
+            formatTooltipLine(`   📊 ${t('statusBar.totalUsage')}: ${totalPercentFormatted} ${t('statusBar.utilized')}`),
             formatTooltipLine(`   ${t('statusBar.fastRequestsPeriod')}: ${periodLabel}`),
             ''
         );
@@ -549,19 +552,19 @@ export async function updateStats(statusBarItem: vscode.StatusBarItem) {
         statusBarItem.show();
         log('[Stats] Stats update completed successfully');
 
-        // Show notifications after ensuring status bar is visible（使用当前周期使用量百分比）
+        // Show notifications after ensuring status bar is visible（高级模型阈值用 API 池百分比）
         if (usageStatus.isEnabled) {
             setTimeout(() => {
                 checkAndNotifyUsage({
-                    percentage: usagePercent,
+                    percentage: advancedModelsPercent,
                     type: 'premium'
                 });
-                if (usagePercent >= 100) {
+                if (advancedModelsPercent >= 100) {
                     checkAndNotifyUsage({
                         percentage: usageBasedPercent,
                         type: 'usage-based',
                         limit: usageStatus.limit,
-                        premiumPercentage: usagePercent
+                        premiumPercentage: advancedModelsPercent
                     });
                 }
                 if (activeMonthData.usageBasedPricing.hasUnpaidMidMonthInvoice) {
@@ -571,7 +574,7 @@ export async function updateStats(statusBarItem: vscode.StatusBarItem) {
         } else {
             setTimeout(() => {
                 checkAndNotifyUsage({
-                    percentage: usagePercent,
+                    percentage: advancedModelsPercent,
                     type: 'premium'
                 });
             }, 1000);

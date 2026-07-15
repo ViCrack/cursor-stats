@@ -1,6 +1,6 @@
 {
   "statusBar": {
-    "premiumFastRequests": "Премиум Жылдам Сұраулар",
+    "premiumFastRequests": "Жоспар пайдалануы",
     "currentPeriodUsage": "Ағымдағы кезең пайдалануы",
     "usageBasedPricing": "Пайдалану Негізіндегі Баға",
     "teamSpend": "Команда Шығыны",
@@ -33,8 +33,11 @@
     "noTokenFound": "Cursor Статистикасы: Токен табылмады",
     "couldNotRetrieveToken": "⚠️ Мәліметтер қорынан Cursor токенін алу мүмкін болмады",
     "requestsUsed": "сұраулар пайдаланылды",
-    "fastRequestsPeriod": "Жылдам Сұраулар Кезеңі",
+    "fastRequestsPeriod": "Есеп айырысу кезеңі",
     "usageBasedPeriod": "Пайдалану Негізіндегі Кезең",
+    "autoUsage": "Auto",
+    "advancedModelsUsage": "Жетілдірілген модельдер",
+    "totalUsage": "Барлығы",
     "currentUsage": "Ағымдағы Пайдалану",
     "total": "Барлығы",
     "unpaid": "Төленбеген",
@@ -88,12 +91,12 @@
     "installedMessage": "Cursor Stats {version} орнатылды"
   },
   "notifications": {
-    "usageThresholdReached": "Премиум сұрау пайдаланысы {percentage}%-ға жетті",
-    "usageExceededLimit": "Премиум сұрау пайдаланысы шектеуден асты ({percentage}%)",
+    "usageThresholdReached": "Жетілдірілген модель пайдаланысы {percentage}%-ға жетті",
+    "usageExceededLimit": "Жетілдірілген модель пайдаланысы шектеуден асты ({percentage}%)",
     "spendingThresholdReached": "Cursor пайдалануға жұмсаған шығыныңыз {amount}-ға жетті",
     "unpaidInvoice": "⚠️ Сізде ай ортасындағы төленбеген шот бар. Пайдалану негізіндегі бағаны пайдалануды жалғастыру үшін оны төлеңіз.",
     "enableUsageBasedTitle": "Пайдалану Негізіндегі Бағаны Қосу",
-    "enableUsageBasedDetail": "Премиум модельдерді пайдалануды жалғастыру үшін пайдалану негізіндегі бағаны қосыңыз.",
+    "enableUsageBasedDetail": "Жетілдірілген модельдерді (API пулы) пайдалануды жалғастыру үшін пайдалану негізіндегі бағаны қосыңыз.",
     "viewSettingsTitle": "Параметрлерді Көру",
     "viewSettingsDetail": "Пайдалану шектеулерін басқару үшін Параметрлерді Көру түймесін басыңыз.",
     "manageLimitTitle": "Шектеуді Басқару",
