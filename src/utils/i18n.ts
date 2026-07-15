@@ -52,14 +52,11 @@ function loadLanguagePackFromFile(languageCode: string): LanguagePack | null {
       return null;
     }
 
-    // Try multiple paths to handle both development and production scenarios
+    // Prefer out/locales (compile 产物)；兼容开发/旧包路径
     const possiblePaths = [
-      // Production path (when extension is packaged)
-      path.join(extensionPath, 'src', 'locales', `${languageCode}.json`),
-      // Alternative production path
-      path.join(extensionPath, 'locales', `${languageCode}.json`),
-      // Development path
       path.join(extensionPath, 'out', 'locales', `${languageCode}.json`),
+      path.join(extensionPath, 'locales', `${languageCode}.json`),
+      path.join(extensionPath, 'src', 'locales', `${languageCode}.json`),
     ];
 
     let localesPath: string | null = null;

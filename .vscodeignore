@@ -3,14 +3,15 @@
 .vfox/
 .vfox.toml
 src/**
-!src/locales/**
-!out/locales/**
 .gitignore
 .yarnrc
 **/tsconfig.json
 **/.eslintrc.json
 **/*.map
 **/*.ts
+
+# locales 由 compile 复制到 out/locales，打包只保留 out/locales
+!out/locales/**
 
 builds/**
 .git/**
