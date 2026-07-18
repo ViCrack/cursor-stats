@@ -1,10 +1,11 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import axios from 'axios';
 import * as jwt from 'jsonwebtoken';
 import { TeamInfo, TeamMemberInfo, TeamSpendResponse, TeamMemberSpend, UserCache, CursorUsageResponse } from '../interfaces/types';
 import { log } from '../utils/logger';
+import { withNetworkRetry } from '../utils/networkRetry';
+import { cursorApiClient, getCursorApiRetryOptions } from './cursorHttpClient';
 
 const CACHE_FILE_NAME = 'user-cache.json';
 
@@ -79,12 +80,15 @@ export async function checkTeamMembership(token: string, context: vscode.Extensi
         log('[Team] Cache miss or invalid, fetching fresh usage data');
         const tokenUserId = token.split('%3A%3A')[0];
         log('[Team] Making request to /api/usage endpoint');
-        const usageResponse = await axios.get<CursorUsageResponse>('https://cursor.com/api/usage', {
-            params: { user: tokenUserId },
-            headers: {
-                Cookie: `WorkosCursorSessionToken=${token}`
-            }
-        });
+        const usageResponse = await withNetworkRetry(
+            () => cursorApiClient.get<CursorUsageResponse>('/api/usage', {
+                params: { user: tokenUserId },
+                headers: {
+                    Cookie: `WorkosCursorSessionToken=${token}`
+                }
+            }),
+            getCursorApiRetryOptions('get-team-membership-usage')
+        );
         const startOfMonth = usageResponse.data.startOfMonth;
         log('[Team] Usage API response', {
             startOfMonth,
@@ -118,14 +122,17 @@ export async function checkTeamMembership(token: string, context: vscode.Extensi
         if (isTeamMember && teamId) {
             // Fetch team details to get userId
             log('[Team] Making request to /api/dashboard/team endpoint');
-            const teamResponse = await axios.post<TeamMemberInfo>('https://cursor.com/api/dashboard/team', 
-                { teamId },
-                {
-                    headers: {
-                        'Content-Type': 'application/json',
-                        Cookie: `WorkosCursorSessionToken=${token}`
+            const teamResponse = await withNetworkRetry(
+                () => cursorApiClient.post<TeamMemberInfo>('/api/dashboard/team', 
+                    { teamId },
+                    {
+                        headers: {
+                            'Content-Type': 'application/json',
+                            Cookie: `WorkosCursorSessionToken=${token}`
+                        }
                     }
-                }
+                ),
+                getCursorApiRetryOptions('get-team-membership')
             );
             teamUserId = teamResponse.data.userId;
             log('[Team] Team details response', {
@@ -166,14 +173,17 @@ export async function checkTeamMembership(token: string, context: vscode.Extensi
 export async function getTeamSpend(token: string, teamId: number): Promise<TeamSpendResponse> {
     try {
         log('[Team] Making request to get team spend');
-        const response = await axios.post<TeamSpendResponse>('https://cursor.com/api/dashboard/get-team-spend', 
-            { teamId }, // Include teamId in request body
-            {
-                headers: {
-                    'Content-Type': 'application/json',
-                    Cookie: `WorkosCursorSessionToken=${token}`
+        const response = await withNetworkRetry(
+            () => cursorApiClient.post<TeamSpendResponse>('/api/dashboard/get-team-spend', 
+                { teamId }, // Include teamId in request body
+                {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Cookie: `WorkosCursorSessionToken=${token}`
+                    }
                 }
-            }
+            ),
+            getCursorApiRetryOptions('get-team-spend')
         );
         log('[Team] Team spend response', {
             memberCount: response.data.teamMemberSpend.length,

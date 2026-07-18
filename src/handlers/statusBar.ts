@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { log } from '../utils/logger';
-import { getCurrentUsageLimit, checkUsageBasedStatus } from '../services/api';
+import { checkUsageBasedStatus } from '../services/api';
 import { getCursorTokenFromDB } from '../services/database';
 import { convertAndFormatCurrency } from '../utils/currency';
 import { t } from '../utils/i18n';
@@ -266,7 +266,7 @@ export async function createMarkdownTooltip(lines: string[], isError: boolean = 
 
         // Usage Based Pricing Section
         const token = await getCursorTokenFromDB();
-        let isEnabled = false;
+        let isEnabled: boolean | null = null;
 
         if (token) {
             try {
@@ -276,8 +276,8 @@ export async function createMarkdownTooltip(lines: string[], isError: boolean = 
                 
                 // Use the new checkUsageBasedStatus function with teamId if available
                 const usageStatus = await checkUsageBasedStatus(token, teamInfo.teamId);
-                isEnabled = usageStatus.isEnabled;
-                const limitResponse = await getCurrentUsageLimit(token, teamInfo.teamId);
+                isEnabled = usageStatus.isKnown ? usageStatus.isEnabled : null;
+                const hardLimit = usageStatus.limit;
                 
                 // Find the original USD data from allLines
                 let originalUsageData = null;
@@ -308,12 +308,17 @@ export async function createMarkdownTooltip(lines: string[], isError: boolean = 
                 }
                 
                 const usageBasedPeriodLine = lines.find(line => line.includes(t('statusBar.usageBasedPeriod')));
+                const statusLabel = isEnabled === null
+                    ? '—'
+                    : isEnabled
+                        ? t('statusBar.enabled')
+                        : t('statusBar.disabled');
 
                 tooltip.appendMarkdown('<div align="center">\n\n');
-                tooltip.appendMarkdown(`### 📈 ${t('statusBar.usageBasedPricing')} (${isEnabled ? t('statusBar.enabled') : t('statusBar.disabled')})\n\n`);
+                tooltip.appendMarkdown(`### 📈 ${t('statusBar.usageBasedPricing')} (${statusLabel})\n\n`);
                 tooltip.appendMarkdown('</div>\n\n');
                 
-                if (isEnabled && limitResponse.hardLimit) {
+                if (isEnabled === true && hardLimit) {
                     if (usageBasedPeriodLine) {
                         const periodText = usageBasedPeriodLine.split(':')[1].trim();
                         
@@ -323,11 +328,11 @@ export async function createMarkdownTooltip(lines: string[], isError: boolean = 
                             usagePercentage = originalUsageData.percentage;
                         } else {
                             // Fallback to calculating with converted values
-                            usagePercentage = ((totalCost / limitResponse.hardLimit) * 100).toFixed(1);
+                            usagePercentage = ((totalCost / hardLimit) * 100).toFixed(1);
                         }
                         
                         // Convert the limit to the user's preferred currency
-                        const formattedLimit = await convertAndFormatCurrency(limitResponse.hardLimit);
+                        const formattedLimit = await convertAndFormatCurrency(hardLimit);
 
                         // Calculate date elapsed percentage for usage-based period
                         const [startDate, endDate] = periodText.split('-').map(d => d.trim());
@@ -357,7 +362,7 @@ export async function createMarkdownTooltip(lines: string[], isError: boolean = 
                             }
                         }
                     }
-                } else if (!isEnabled) {
+                } else if (isEnabled === false) {
                     tooltip.appendMarkdown(`> ℹ️ ${t('statusBar.usageBasedDisabled')}\n\n`);
                 }
                 

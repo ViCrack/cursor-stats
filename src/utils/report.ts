@@ -2,14 +2,15 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import axios from 'axios';
-import { CursorReport, CursorUsageResponse } from '../interfaces/types';
-import { fetchCursorStats, getCurrentUsageLimit } from '../services/api';
+import { CursorReport } from '../interfaces/types';
+import { fetchCursorStats, fetchCursorUsage, getCurrentUsageLimit } from '../services/api';
 import { getCursorTokenFromDB } from '../services/database';
 import { log, getLogHistory } from './logger';
 import { getTeamSpend, checkTeamMembership } from '../services/team';
 import { getExtensionContext } from '../extension';
 import { t } from './i18n';
+import { cursorApiClient, getCursorApiRetryOptions } from '../services/cursorHttpClient';
+import { withNetworkRetry } from './networkRetry';
 
 /**
  * Generates a comprehensive report of the extension's data and API responses
@@ -44,9 +45,6 @@ export async function generateReport(): Promise<{ reportPath: string; success: b
             log('[Report] Failed to retrieve token', true);
             return saveReport(report, context);
         }
-        
-        // Extract user ID from token
-        const userId = token.split('%3A%3A')[0];
         
         // Get current date for usage-based pricing (which renews on 2nd/3rd of each month)
         const currentDate = new Date();
@@ -93,15 +91,10 @@ export async function generateReport(): Promise<{ reportPath: string; success: b
                 }),
             
             // Get premium usage directly
-            axios.get<CursorUsageResponse>('https://cursor.com/api/usage', {
-                params: { user: userId },
-                headers: { 
-                    Cookie: `WorkosCursorSessionToken=${token}` 
-                }
-            })
-                .then(response => {
-                    report.premiumUsage = response.data;
-                    report.rawResponses.premiumUsage = response.data;
+            fetchCursorUsage(token)
+                .then(usageData => {
+                    report.premiumUsage = usageData;
+                    report.rawResponses.premiumUsage = usageData;
                     log('[Report] Successfully fetched premium usage data');
                 })
                 .catch(error => {
@@ -142,16 +135,19 @@ export async function generateReport(): Promise<{ reportPath: string; success: b
                 }),
 
             // Get current month invoice data
-            axios.post('https://cursor.com/api/dashboard/get-monthly-invoice', {
-                month: usageBasedCurrentMonth,
-                year: usageBasedCurrentYear,
-                includeUsageEvents: false
-            }, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    Cookie: `WorkosCursorSessionToken=${token}`
-                }
-            })
+            withNetworkRetry(
+                () => cursorApiClient.post('/api/dashboard/get-monthly-invoice', {
+                    month: usageBasedCurrentMonth,
+                    year: usageBasedCurrentYear,
+                    includeUsageEvents: false
+                }, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Cookie: `WorkosCursorSessionToken=${token}`
+                    }
+                }),
+                getCursorApiRetryOptions('report-current-month-invoice', 700)
+            )
                 .then(response => {
                     if (!report.rawResponses.monthlyInvoice) {
                         report.rawResponses.monthlyInvoice = {};
@@ -165,16 +161,19 @@ export async function generateReport(): Promise<{ reportPath: string; success: b
                 }),
 
             // Get last month invoice data
-            axios.post('https://cursor.com/api/dashboard/get-monthly-invoice', {
-                month: usageBasedLastMonth,
-                year: usageBasedLastYear,
-                includeUsageEvents: false
-            }, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    Cookie: `WorkosCursorSessionToken=${token}`
-                }
-            })
+            withNetworkRetry(
+                () => cursorApiClient.post('/api/dashboard/get-monthly-invoice', {
+                    month: usageBasedLastMonth,
+                    year: usageBasedLastYear,
+                    includeUsageEvents: false
+                }, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Cookie: `WorkosCursorSessionToken=${token}`
+                    }
+                }),
+                getCursorApiRetryOptions('report-last-month-invoice', 700)
+            )
                 .then(response => {
                     if (!report.rawResponses.monthlyInvoice) {
                         report.rawResponses.monthlyInvoice = {};

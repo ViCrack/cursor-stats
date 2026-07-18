@@ -1,6 +1,6 @@
 import { log } from './logger';
 import { getCursorTokenFromDB } from '../services/database';
-import { checkUsageBasedStatus, fetchCursorStats, getCurrentPeriodUsage, getUsageEventCount } from '../services/api';
+import { checkUsageBasedStatus, fetchCursorStats, fetchCursorUsage, getCurrentPeriodUsage, getUsageEventCount } from '../services/api';
 import { checkAndNotifyUsage, checkAndNotifySpending, checkAndNotifyUnpaidInvoice } from '../handlers/notifications';
 import { 
     startRefreshInterval,
@@ -14,14 +14,27 @@ import { createMarkdownTooltip, formatTooltipLine, getMaxLineWidth, getStatusBar
 import * as vscode from 'vscode';
 import { convertAndFormatCurrency, getCurrentCurrency } from './currency';
 import { t } from './i18n';
-import axios from 'axios';
-import { CursorUsageResponse } from '../interfaces/types';
 
 // Track unknown models to avoid repeated notifications
 let unknownModelNotificationShown = false;
 let detectedUnknownModels: Set<string> = new Set();
+let activeStatsUpdate: Promise<void> | null = null;
 
-export async function updateStats(statusBarItem: vscode.StatusBarItem) {
+export async function updateStats(statusBarItem: vscode.StatusBarItem): Promise<void> {
+    if (activeStatsUpdate) {
+        log('[Stats] Reusing the active stats update');
+        return activeStatsUpdate;
+    }
+
+    activeStatsUpdate = performStatsUpdate(statusBarItem);
+    try {
+        await activeStatsUpdate;
+    } finally {
+        activeStatsUpdate = null;
+    }
+}
+
+async function performStatsUpdate(statusBarItem: vscode.StatusBarItem): Promise<void> {
     try {
         log('[Stats] ' +"=".repeat(100));
         log('[Stats] Starting stats update...');
@@ -216,13 +229,7 @@ export async function updateStats(statusBarItem: vscode.StatusBarItem) {
 
         // Add detailed model usage breakdown if available
         try {
-            const userId = token.split('%3A%3A')[0];
-            const usageResponse = await axios.get<CursorUsageResponse>('https://cursor.com/api/usage', {
-                params: { user: userId },
-                headers: { Cookie: `WorkosCursorSessionToken=${token}` }
-            });
-            
-            const usageData = usageResponse.data;
+            const usageData = await fetchCursorUsage(token);
             
             // Show team vs individual comparison if using team spend data
             if (stats.isTeamSpendData) {

@@ -87,7 +87,9 @@ export function startCountdownDisplay() {
       _consecutiveErrorCount = 0;
       startRefreshInterval(); // Resume normal operation
       if (_statusBarItem) {
-        updateStats(_statusBarItem); // Try updating immediately
+        void updateStats(_statusBarItem).catch((error) => {
+          log(`[Refresh] Immediate refresh after cooldown failed: ${String(error)}`, true);
+        });
       }
       return;
     }
@@ -128,7 +130,9 @@ export function startRefreshInterval() {
     _refreshInterval = setInterval(() => {
       if (!_cooldownStartTime) {
         // Double-check we're not in cooldown
-        updateStats(_statusBarItem!);
+        void updateStats(_statusBarItem!).catch((error) => {
+          log(`[Refresh] Scheduled stats update failed: ${String(error)}`, true);
+        });
       }
     }, intervalMs);
   }

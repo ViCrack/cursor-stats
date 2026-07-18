@@ -18,6 +18,7 @@ import { SUPPORTED_CURRENCIES } from './utils/currency';
 import { convertAndFormatCurrency } from './utils/currency';
 import { createReportCommand } from './utils/report';
 import { initializeI18n, t, setOnLanguageChangeCallback } from './utils/i18n';
+import { disposeCursorApiClient } from './services/cursorHttpClient';
 
 let statusBarItem: vscode.StatusBarItem;
 let extensionContext: vscode.ExtensionContext;
@@ -113,9 +114,12 @@ export async function activate(context: vscode.ExtensionContext) {
     if (token) {
       log('[Initialization] Checking usage-based pricing status...');
       const status = await checkUsageBasedStatus(token);
-      log(
-        `[Initialization] Usage-based pricing is ${status.isEnabled ? 'enabled' : 'disabled'}${status.limit ? ` with limit $${status.limit}` : ''}`,
-      );
+      const statusDescription = status.isKnown
+        ? status.isEnabled
+          ? 'enabled'
+          : 'disabled'
+        : 'unknown because the status request failed';
+      log(`[Initialization] Usage-based pricing is ${statusDescription}${status.limit ? ` with limit $${status.limit}` : ''}`);
     }
 
     // Register commands
@@ -430,6 +434,9 @@ export function deactivate() {
   try {
     clearAllIntervals();
     log('[Deactivation] All intervals cleared');
+
+    disposeCursorApiClient();
+    log('[Deactivation] Cursor API client disposed');
 
     if (outputChannel) {
       outputChannel.dispose();
