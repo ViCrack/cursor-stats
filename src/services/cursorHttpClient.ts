@@ -22,22 +22,42 @@ interface NetworkErrorWithAgent {
 }
 
 let activeHttpsAgent: DestroyableAgent;
-let activeProxyMode: 'direct' | 'vscode-proxy';
+let activeProxyMode: 'direct' | 'vscode-proxy' | 'env-proxy' = 'direct';
+/** TLS 出错后关闭 keep-alive，避免代理下复用脏连接反复 BAD_DECRYPT */
+let keepAliveEnabled = true;
+
+function resolveProxyUrl(): string | undefined {
+  const workspaceConfiguration = vscode.workspace.getConfiguration();
+  const vscodeProxy = (workspaceConfiguration.get('http.proxy') as string | undefined)?.trim();
+  if (vscodeProxy) {
+    return vscodeProxy;
+  }
+
+  const envProxy =
+    process.env.HTTPS_PROXY ||
+    process.env.https_proxy ||
+    process.env.HTTP_PROXY ||
+    process.env.http_proxy;
+  return envProxy?.trim() || undefined;
+}
 
 function createDirectHttpsAgent(): DestroyableAgent {
   activeProxyMode = 'direct';
   return new https.Agent({
-    keepAlive: true,
+    keepAlive: keepAliveEnabled,
     maxSockets: MAX_CONCURRENT_CONNECTIONS,
-    maxFreeSockets: 2,
+    maxFreeSockets: keepAliveEnabled ? 2 : 0,
     timeout: CURSOR_API_TIMEOUT_MS,
   });
 }
 
 function createHttpsAgentFromConfiguration(): DestroyableAgent {
   const workspaceConfiguration = vscode.workspace.getConfiguration();
-  const proxyUrl = (workspaceConfiguration.get('http.proxy') as string | undefined)?.trim();
+  const proxyUrl = resolveProxyUrl();
   const strictSsl = workspaceConfiguration.get('http.proxyStrictSSL') as boolean | undefined;
+  const usingVscodeProxy = Boolean(
+    (workspaceConfiguration.get('http.proxy') as string | undefined)?.trim(),
+  );
 
   if (proxyUrl) {
     try {
@@ -45,17 +65,19 @@ function createHttpsAgentFromConfiguration(): DestroyableAgent {
       if (parsedProxyUrl.protocol !== 'http:' && parsedProxyUrl.protocol !== 'https:') {
         throw new Error('Unsupported proxy protocol');
       }
+      // 经代理时默认不用 keep-alive：不少代理/MITM 对复用连接会触发 BAD_DECRYPT
+      const proxyKeepAlive = false;
       const proxyAgent = new HttpsProxyAgent(proxyUrl, {
         rejectUnauthorized: strictSsl !== false,
-        keepAlive: true,
+        keepAlive: proxyKeepAlive,
         maxSockets: MAX_CONCURRENT_CONNECTIONS,
-        maxFreeSockets: 2,
+        maxFreeSockets: 0,
       });
-      activeProxyMode = 'vscode-proxy';
+      activeProxyMode = usingVscodeProxy ? 'vscode-proxy' : 'env-proxy';
       return proxyAgent;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      log(`[API] Ignoring invalid VS Code proxy configuration: ${errorMessage}`, true);
+      log(`[API] Ignoring invalid proxy configuration: ${errorMessage}`, true);
     }
   }
 
@@ -63,6 +85,7 @@ function createHttpsAgentFromConfiguration(): DestroyableAgent {
 }
 
 activeHttpsAgent = createHttpsAgentFromConfiguration();
+log(`[API] Initialized ${activeProxyMode} HTTPS agent (keepAlive=${keepAliveEnabled})`);
 
 export const cursorApiClient = axios.create({
   baseURL: 'https://cursor.com',
@@ -78,18 +101,26 @@ export const cursorApiClient = axios.create({
 
 export function resetCursorApiConnections(
   reason: string,
-  expectedAgent: DestroyableAgent = activeHttpsAgent,
+  expectedAgent?: DestroyableAgent,
+  options?: { disableKeepAlive?: boolean },
 ): void {
-  if (expectedAgent !== activeHttpsAgent) {
+  // expectedAgent 缺失时仍重建（axios 错误有时不带 config.httpsAgent）
+  if (expectedAgent !== undefined && expectedAgent !== activeHttpsAgent) {
     log(`[API] Skipped stale HTTPS agent reset: ${reason}`);
     return;
+  }
+
+  if (options?.disableKeepAlive) {
+    keepAliveEnabled = false;
   }
 
   const previousAgent = activeHttpsAgent;
   activeHttpsAgent = createHttpsAgentFromConfiguration();
   cursorApiClient.defaults.httpsAgent = activeHttpsAgent;
   previousAgent.destroy();
-  log(`[API] Recreated ${activeProxyMode} HTTPS agent: ${reason}`);
+  log(
+    `[API] Recreated ${activeProxyMode} HTTPS agent (keepAlive=${keepAliveEnabled}): ${reason}`,
+  );
 }
 
 export function getCursorApiRetryOptions(
@@ -106,6 +137,7 @@ export function getCursorApiRetryOptions(
         resetCursorApiConnections(
           `${requestName} encountered a TLS record error`,
           failedAgent,
+          { disableKeepAlive: true },
         );
       }
     },
@@ -117,6 +149,7 @@ const proxyConfigurationListener = vscode.workspace.onDidChangeConfiguration((ev
     event.affectsConfiguration('http.proxy') ||
     event.affectsConfiguration('http.proxyStrictSSL')
   ) {
+    keepAliveEnabled = true;
     resetCursorApiConnections('VS Code proxy configuration changed');
   }
 });
