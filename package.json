@@ -386,7 +386,8 @@
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
     "test": "vscode-test",
-    "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,md}\""
+    "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,md}\"",
+    "package": "npx --yes @vscode/vsce package"
   },
   "devDependencies": {
     "@types/jsonwebtoken": "9.0.9",

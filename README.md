@@ -129,6 +129,34 @@ Or install directly from [VS Code Marketplace](https://marketplace.visualstudio.
 
 </details>
 
+## 📦 本地打包（VSIX）
+
+发布或本地安装前，在仓库根目录执行：
+
+```powershell
+npm run package
+```
+
+等价于：
+
+```powershell
+npx @vscode/vsce package
+```
+
+会先走 `vscode:prepublish`（编译 TypeScript），再生成 `cursor-stats-<version>.vsix`。
+
+**注意：**
+
+- 必须使用默认的依赖打包，**不要**加 `--no-dependencies`。
+- 加了该参数后 VSIX 里不会包含 `node_modules`，体积会异常偏小（约 200KB），安装后会出现 `axios` / `sql.js` 等模块找不到。
+- 正常包体积大约 1MB 量级（含运行时依赖）。
+
+安装示例：
+
+```powershell
+cursor --install-extension .\cursor-stats-3.1.16.vsix
+```
+
 ## 🤝 Contributing
 
 1. Fork the repository
